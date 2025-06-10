@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: officebooker
+      POSTGRES_PASSWORD: officebookerpass
+      POSTGRES_DB: officecubicle
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://officebooker:officebookerpass@db:5432/officecubicle?sslmode=disable
+    depends_on:
+      - db
+    restart: unless-stopped
+volumes:
+  pgdata:

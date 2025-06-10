@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Seat Map Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    .map-container {
+      position: relative;
+      border: 1px solid #ccc;
+      width: 800px;
+      height: 600px;
+      margin: 20px auto;
+    }
+    .floor-plan {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .seat {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      font-weight: bold;
+      color: white;
+      font-size: 12px;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .seat.available {
+      background-color: #22c55e;
+      border: 1px solid #16a34a;
+    }
+    .seat.reserved {
+      background-color: #94a3b8;
+      border: 1px solid #64748b;
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    .seat.selected {
+      background-color: #4f46e5;
+      border: 1px solid #4338ca;
+      z-index: 10;
+      transform: translate(-50%, -50%) scale(1.15);
+      box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.4);
+    }
+    .seat:hover:not(.reserved) {
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+    .tooltip {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .debug-marker {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: red;
+      border-radius: 50%;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.5;
+      z-index: 100;
+    }
+    .debug-axes {
+      position: absolute;
+      inset: 0;
+      opacity: 0.1;
+      pointer-events: none;
+    }
+    .debug-vaxis {
+      position: absolute;
+      width: 1px;
+      height: 100%;
+      background-color: blue;
+      left: 50%;
+    }
+    .debug-haxis {
+      position: absolute;
+      width: 100%;
+      height: 1px;
+      background-color: blue;
+      top: 50%;
+    }
+  </style>
+</head>
+<body>
+  <h1>Seat Map Test</h1>
+  <div class="map-container">
+    <img src="/floorplan.svg" class="floor-plan" alt="Office Floor Plan" />
+    
+    <!-- Debug overlays -->
+    <div class="debug-marker"></div>
+    <div class="debug-axes">
+      <div class="debug-vaxis"></div>
+      <div class="debug-haxis"></div>
+    </div>
+    
+    <!-- Sample seats -->
+    <div class="seat available" style="left: 18%; top: 15%;" data-id="B1-11">B1-11</div>
+    <div class="seat available" style="left: 18%; top: 22.5%;" data-id="B1-17">B1-17</div>
+    <div class="seat reserved" style="left: 24%; top: 15%;" data-id="B1-12">B1-12</div>
+    <div class="seat available" style="left: 24%; top: 22.5%;" data-id="B1-18">B1-18</div>
+    
+    <div class="seat available" style="left: 47.5%; top: 15%;" data-id="B2-11">B2-11</div>
+    <div class="seat available" style="left: 47.5%; top: 22.5%;" data-id="B2-17">B2-17</div>
+    <div class="seat available" style="left: 55%; top: 15%;" data-id="B2-12">B2-12</div>
+    <div class="seat reserved" style="left: 55%; top: 22.5%;" data-id="B2-18">B2-18</div>
+    
+    <div class="seat available" style="left: 77.5%; top: 15%;" data-id="B3-11">B3-11</div>
+    <div class="seat reserved" style="left: 77.5%; top: 22.5%;" data-id="B3-17">B3-17</div>
+    <div class="seat available" style="left: 85%; top: 15%;" data-id="B3-12">B3-12</div>
+    <div class="seat available" style="left: 85%; top: 22.5%;" data-id="B3-18">B3-18</div>
+    
+    <div class="tooltip">Seat B1-11 - Available</div>
+  </div>
+  
+  <div style="text-align: center; margin-top: 20px;">
+    <button id="selectButton">Select Random Seat</button>
+    <button id="resetButton">Reset</button>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const seats = document.querySelectorAll('.seat');
+      const tooltip = document.querySelector('.tooltip');
+      let selectedSeat = null;
+      
+      // Tooltip handling
+      seats.forEach(seat => {
+        seat.addEventListener('mouseenter', function(e) {
+          const seatId = seat.getAttribute('data-id');
+          const status = seat.classList.contains('reserved') ? 'Reserved' : 'Available';
+          
+          tooltip.textContent = `${seatId} - ${status}`;
+          tooltip.style.opacity = '1';
+          
+          // Position the tooltip above the cursor
+          updateTooltipPosition(e);
+        });
+        
+        seat.addEventListener('mousemove', function(e) {
+          updateTooltipPosition(e);
+        });
+        
+        seat.addEventListener('mouseleave', function() {
+          tooltip.style.opacity = '0';
+        });
+        
+        // Selection handling
+        seat.addEventListener('click', function() {
+          if (seat.classList.contains('reserved')) return;
+          
+          if (selectedSeat) {
+            selectedSeat.classList.remove('selected');
+          }
+          
+          seat.classList.add('selected');
+          selectedSeat = seat;
+        });
+      });
+      
+      function updateTooltipPosition(e) {
+        tooltip.style.left = (e.clientX - tooltip.offsetWidth / 2) + 'px';
+        tooltip.style.top = (e.clientY - tooltip.offsetHeight - 10) + 'px';
+      }
+      
+      // Random seat selection
+      document.getElementById('selectButton').addEventListener('click', function() {
+        if (selectedSeat) {
+          selectedSeat.classList.remove('selected');
+        }
+        
+        const availableSeats = Array.from(seats).filter(seat => !seat.classList.contains('reserved'));
+        if (availableSeats.length > 0) {
+          const randomIndex = Math.floor(Math.random() * availableSeats.length);
+          availableSeats[randomIndex].classList.add('selected');
+          selectedSeat = availableSeats[randomIndex];
+        }
+      });
+      
+      // Reset selection
+      document.getElementById('resetButton').addEventListener('click', function() {
+        if (selectedSeat) {
+          selectedSeat.classList.remove('selected');
+          selectedSeat = null;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
